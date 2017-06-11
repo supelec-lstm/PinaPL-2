@@ -138,7 +138,7 @@ const ActivationFunction activationFunctionHeavyside{ActivationFunctionTypeHeavy
 
 const ActivationFunction activationFunctionSigmoid {ActivationFunctionTypeSigmoid, &activationFunctionMain::sigmoid, &activationFunctionDerivative::sigmoid};
 
-const ActivationFunction activationFunctionTanh {ActivationFunctionTypeArctan, &activationFunctionMain::tanh, &activationFunctionDerivative::tanh};
+const ActivationFunction activationFunctionTanh {ActivationFunctionTypeTanh, &activationFunctionMain::tanh, &activationFunctionDerivative::tanh};
 
 const ActivationFunction activationFunctionLinear {ActivationFunctionTypeLinear, &activationFunctionMain::linear, &activationFunctionDerivative::linear};
 

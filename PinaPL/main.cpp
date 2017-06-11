@@ -6,6 +6,7 @@
 //  Copyright © 2016 PinaPL. All rights reserved.
 //
 
+#include <cmath>
 #include <iostream>
 #include <fstream>
 
@@ -20,6 +21,7 @@
 
 using namespace std;
 
+double logicFunction(UInteger a, UInteger b);
 void testXOR();
 void testMNIST();
 
@@ -27,16 +29,20 @@ void testMNIST();
 int main() {
     srand(static_cast<unsigned int>(time(NULL)));
 
-    testMNIST();
+    testXOR();
     
     return 0;
+}
+
+double logicFunction(UInteger a, UInteger b) {
+    return (1 - (a * b + (1 - a) * (1 - b)));
 }
 
 void testXOR() {
 /* Build the network */
     NeuralNetwork network = NeuralNetwork();
     network.setDefaultActivationFunction(activationFunctionSigmoid);
-    network.setLearningRate(0.3);
+    network.setLearningRate(0.5);
     
     network.addNeuron();
     network.addNeuron();
@@ -74,8 +80,10 @@ void testXOR() {
         
         network.getInputAtIndex(0)->setValue(a);
         network.getInputAtIndex(1)->setValue(b);
-        expectedOutput[0] = 1 - (a * b + (1 - a) * (1 - b));
-        
+        expectedOutput[0] = logicFunction(a, b);
+        if (i % 5 == 0)
+            expectedOutput[0] = 1 - expectedOutput[0];
+		
         network.backpropagation(expectedOutput);
         network.computeWeightVariations();
         
@@ -84,28 +92,34 @@ void testXOR() {
     }
     
 /* Tests */
+    double cost = 0;
     network.getInputAtIndex(0)->setValue(0);
     network.getInputAtIndex(1)->setValue(0);
     network.computeOutputs();
+    cost = cost + pow((network.getOutputValues()[0] - logicFunction(0, 0)), 2);
     cout << network.getOutputValues()[0] << endl;
     network.getInputAtIndex(0)->setValue(1);
     network.getInputAtIndex(1)->setValue(0);
     network.computeOutputs();
+    cost = cost + pow((network.getOutputValues()[0] - logicFunction(1, 0)), 2);
     cout << network.getOutputValues()[0] << endl;
     network.getInputAtIndex(0)->setValue(0);
     network.getInputAtIndex(1)->setValue(1);
     network.computeOutputs();
+    cost = cost + pow((network.getOutputValues()[0] - logicFunction(0, 1)), 2);
     cout << network.getOutputValues()[0] << endl;
     network.getInputAtIndex(0)->setValue(1);
     network.getInputAtIndex(1)->setValue(1);
     network.computeOutputs();
+    cost = cost + pow((network.getOutputValues()[0] - logicFunction(1, 1)), 2);
     cout << network.getOutputValues()[0] << endl;
+    cout << "Cost: " << sqrt(cost) << endl;
     
 /* MATLAB Plot */
     double x = -0.5, y = -0.5;
     ofstream values;
     values.open("./PinaPL.m");
-    values << "a = [";
+    values << "close all;\nclear variables;\n\na = [";
     
     while (x < 1.5) {
         while (y < 1.5) {
@@ -117,10 +131,11 @@ void testXOR() {
         }
         y = -0.5;
         x += 0.02;
-        values << "; ";
+        values << ";\n\t";
     }
-    values << "];\n";
-    values << "image(flipud(a), 'CDataMapping', 'scaled');";
+    values << "];\n\n";
+	values << "x = linspace(-0.5, 1.5, 1000);\ny = linspace(-.5, 1.5, 1000);\nimagesc(x, y, flipud(a), 'CDataMapping', 'scaled');\n\n";
+	values << "set(gca,'Ydir','normal');\ncaxis([0 1]);\ncolorbar;\nhold on;\nplot(0, 0, 'ko');\nplot(0, 1, 'wo');\nplot(1, 0, 'wo');\nplot(1, 1, 'ko');\n";
     values.close();
 }
 
@@ -138,22 +153,26 @@ void testMNIST() {
     
     for (UInteger i = 0; i < 784; i++)
         network.addNeuron();
+    for (UInteger i = 0; i < 30; i++)
+        network.addNeuron();
     for (UInteger i = 0; i < 10; i++)
         network.addNeuron();
 
-    for (UInteger i = 0; i < network.neuronCount(); i++) {
-        if (i < 784) {
-            network.addInput(network.neuronAtIndex(i));
-            network.neuronAtIndex(i)->setActivationFunction(activationFunctionLinear);
-        }
-        else
-            network.addOutput(network.neuronAtIndex(i));
+    for (UInteger i = 0; i < 784; i++) {
+        network.addInput(network.neuronAtIndex(i));
+        network.neuronAtIndex(i)->setActivationFunction(activationFunctionLinear);
     }
+    for (UInteger i = network.neuronCount() - 10; i < network.neuronCount(); i++)
+        network.addOutput(network.neuronAtIndex(i));
     
     for (UInteger i = 0; i < network.inputCount(); i++) {
-        for (UInteger j = 0; j < network.outputCount(); j++) {
-            network.addConnection(network.neuronAtIndex(i), network.neuronAtIndex(network.inputCount() + j));
-        }
+        for (UInteger j = network.inputCount(); j < network.neuronCount() - network.outputCount(); j++)
+            network.addConnection(network.neuronAtIndex(i), network.neuronAtIndex(j));
+    }
+
+    for (UInteger i = network.inputCount(); i < network.neuronCount() - network.outputCount(); i++) {
+        for (UInteger j = network.neuronCount() - network.outputCount(); j < network.neuronCount(); j++)
+            network.addConnection(network.neuronAtIndex(i), network.neuronAtIndex(j));
     }
     
 /* Learn characters */
@@ -162,7 +181,7 @@ void testMNIST() {
         expectedOutput[i] = 0;
     
     UInteger counter = 0;
-    for (UInteger k = 0; k < 10; k++) {
+    for (UInteger k = 0; k < 1; k++) {
         for (UInteger i = 0; i < learningData.size(); i++) {
 //        for (UInteger i = 0; i < 100; i++) {
             for (UInteger j = 0; j < learningData[i].size(); j++) {
@@ -201,10 +220,10 @@ void testMNIST() {
         
         if (maxIndex == learningDataOutput[i])
             correct += 1.0;
-        cout << "Expected: " << learningDataOutput[i] << ", got: " << maxIndex << ", values: ";
-        for (UInteger j = 0; j < output.size(); j++)
-            cout << output[j] << " ";
-        cout << endl;
+//        cout << "Expected: " << learningDataOutput[i] << ", got: " << maxIndex << ", values: ";
+//        for (UInteger j = 0; j < output.size(); j++)
+//            cout << output[j] << " ";
+//        cout << endl;
     }
     cout << endl;
     cout << correct << " " << correct / learningDataOutput.size() << endl;
@@ -227,10 +246,10 @@ void testMNIST() {
         
         if (maxIndex == testingDataOutput[i])
             correct += 1.0;
-        cout << "Expected: " << testingDataOutput[i] << ", got: " << maxIndex << ", values: ";
-        for (UInteger j = 0; j < output.size(); j++)
-            cout << output[j] << " ";
-        cout << endl;
+//        cout << "Expected: " << testingDataOutput[i] << ", got: " << maxIndex << ", values: ";
+//        for (UInteger j = 0; j < output.size(); j++)
+//            cout << output[j] << " ";
+//        cout << endl;
     }
     cout << endl;
     cout << correct << " " << correct / testingData.size() << endl;

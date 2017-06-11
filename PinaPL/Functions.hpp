@@ -31,7 +31,7 @@ enum CompositionFunctionType : UInteger {
 enum ActivationFunctionType : UInteger {
     ActivationFunctionTypeHeavyside = 1,
     ActivationFunctionTypeSigmoid = 2,
-    ActivationFunctionTypeArctan = 3,
+    ActivationFunctionTypeTanh = 3,
     ActivationFunctionTypeLinear = 4,
     ActivationFunctionTypeReLu = 5,
     ActivationFunctionTypeOther = NotFound
